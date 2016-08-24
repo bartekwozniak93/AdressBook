@@ -147,7 +147,6 @@ public class AddressBook {
 			showToUser(String.format(MESSAGE_INVALID_FILE, filePath));
 			exitProgram();
 		}
-
 		storageFilePath = filePath;
 		createFileIfMissing(filePath);
 	}
