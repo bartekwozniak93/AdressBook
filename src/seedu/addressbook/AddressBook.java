@@ -103,72 +103,51 @@ public class AddressBook {
 	private static String storageFilePath;
 
 	public static void main(String[] args) {
-		showWelcomeMessage();
-		processProgramArgs(args);
-		loadDataFromStorage();
-		while (true) {
-			String userCommand = getUserInput();
-			echoUserCommand(userCommand);
-			String feedback = executeCommand(userCommand);
-			showResultToUser(feedback);
-		}
-	}
-
-	private static void showWelcomeMessage() {
 		showToUser(DIVIDER, DIVIDER, VERSION, MESSAGE_WELCOME, DIVIDER);
-	}
-
-	private static void showResultToUser(String result) {
-		showToUser(result, DIVIDER);
-	}
-
-	private static void echoUserCommand(String userCommand) {
-		showToUser("[Command entered:" + userCommand + "]");
-	}
-
-	private static void processProgramArgs(String[] args) {
 		if (args.length >= 2) {
 			showToUser(MESSAGE_INVALID_PROGRAM_ARGS);
 			exitProgram();
 		}
 
 		if (args.length == 1) {
-			setupGivenFileForStorage(args[0]);
+			if (!isValidFilePath(args[0])) {
+				showToUser(String.format(MESSAGE_INVALID_FILE, args[0]));
+				exitProgram();
+			}
+			storageFilePath = args[0];
+			createFileIfMissing(args[0]);
 		}
 
 		if (args.length == 0) {
-			setupDefaultFileForStorage();
+			showToUser(MESSAGE_USING_DEFAULT_FILE);
+			storageFilePath = DEFAULT_STORAGE_FILEPATH;
+			createFileIfMissing(storageFilePath);
+		}
+		ALL_PERSONS.clear();
+		ALL_PERSONS.addAll(loadPersonsFromFile(storageFilePath));
+		while (true) {
+			System.out.print(LINE_PREFIX + "Enter command: ");
+			String userCommand = SCANNER.nextLine();
+			while (userCommand.trim().isEmpty() || userCommand.trim().charAt(0) == INPUT_COMMENT_MARKER) {
+				userCommand = SCANNER.nextLine();
+			}
+			showToUser("[Command entered:" + userCommand + "]");
+			String feedback = executeCommand(userCommand);
+			showToUser(feedback, DIVIDER);
 		}
 	}
 
-	private static void setupGivenFileForStorage(String filePath) {
-
-		if (!isValidFilePath(filePath)) {
-			showToUser(String.format(MESSAGE_INVALID_FILE, filePath));
-			exitProgram();
-		}
-		storageFilePath = filePath;
-		createFileIfMissing(filePath);
-	}
 
 	private static void exitProgram() {
 		showToUser(MESSAGE_GOODBYE, DIVIDER, DIVIDER);
 		System.exit(0);
 	}
 
-	private static void setupDefaultFileForStorage() {
-		showToUser(MESSAGE_USING_DEFAULT_FILE);
-		storageFilePath = DEFAULT_STORAGE_FILEPATH;
-		createFileIfMissing(storageFilePath);
-	}
-
 	private static boolean isValidFilePath(String filePath) {
 		return filePath.endsWith(".txt");
 	}
 
-	private static void loadDataFromStorage() {
-		initialiseAddressBookModel(loadPersonsFromFile(storageFilePath));
-	}
+
 
 	public static String executeCommand(String userInputString) {
 		final String[] commandTypeAndParams = splitCommandWordAndArgs(userInputString);
@@ -210,7 +189,9 @@ public class AddressBook {
 		// checks if args are valid (decode result will not be present if the
 		// person is invalid)
 		if (!decodeResult.isPresent()) {
-			return getMessageForInvalidCommandInput(COMMAND_ADD_WORD, getUsageInfoForAddCommand());
+			return getMessageForInvalidCommandInput(COMMAND_ADD_WORD, String.format(MESSAGE_COMMAND_HELP, COMMAND_ADD_WORD, COMMAND_ADD_DESC) + LS
+					+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_ADD_PARAMETERS) + LS
+					+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_ADD_EXAMPLE) + LS);
 		}
 
 		// add the person as specified
@@ -256,7 +237,9 @@ public class AddressBook {
 
 	private static String executeDeletePerson(String commandArgs) {
 		if (!isDeletePersonArgsValid(commandArgs)) {
-			return getMessageForInvalidCommandInput(COMMAND_DELETE_WORD, getUsageInfoForDeleteCommand());
+			return getMessageForInvalidCommandInput(COMMAND_DELETE_WORD, String.format(MESSAGE_COMMAND_HELP, COMMAND_DELETE_WORD, COMMAND_DELETE_DESC) + LS
+					+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_DELETE_PARAMETER) + LS
+					+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_DELETE_EXAMPLE) + LS);
 		}
 		final int targetVisibleIndex = extractTargetIndexFromDeletePersonArgs(commandArgs);
 		if (!isDisplayIndexValidForLastPersonListingView(targetVisibleIndex)) {
@@ -309,14 +292,7 @@ public class AddressBook {
 	 * =========================================== UI LOGIC ===========================================
 	 */
 
-	private static String getUserInput() {
-		System.out.print(LINE_PREFIX + "Enter command: ");
-		String inputLine = SCANNER.nextLine();
-		while (inputLine.trim().isEmpty() || inputLine.trim().charAt(0) == INPUT_COMMENT_MARKER) {
-			inputLine = SCANNER.nextLine();
-		}
-		return inputLine;
-	}
+
 
 	private static void showToUser(String... message) {
 		for (String m : message) {
@@ -445,14 +421,6 @@ public class AddressBook {
 		savePersonsToFile(getAllPersonsInAddressBook(), storageFilePath);
 	}
 
-	private static void initialiseAddressBookModel(ArrayList<HashMap<PersonProperty, String>> persons) {
-		ALL_PERSONS.clear();
-		ALL_PERSONS.addAll(persons);
-	}
-
-	/*
-	 * =========================================== PERSON METHODS ===========================================
-	 */
 
 	private static String getNameFromPerson(HashMap<PersonProperty, String> person) {
 		return person.get(PersonProperty.NAME);
@@ -587,52 +555,18 @@ public class AddressBook {
 	}
 
 	private static String getUsageInfoForAllCommands() {
-		return getUsageInfoForAddCommand() + LS
-				+ getUsageInfoForFindCommand() + LS 
-				+ getUsageInfoForViewCommand() + LS
-				+ getUsageInfoForDeleteCommand() + LS 
-				+ getUsageInfoForClearCommand() + LS
-				+ getUsageInfoForExitCommand() + LS 
-				+ getUsageInfoForHelpCommand();
-	}
-
-	private static String getUsageInfoForAddCommand() {
 		return String.format(MESSAGE_COMMAND_HELP, COMMAND_ADD_WORD, COMMAND_ADD_DESC) + LS
 				+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_ADD_PARAMETERS) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_ADD_EXAMPLE) + LS;
+				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_ADD_EXAMPLE) + LS + LS
+				+ String.format(MESSAGE_COMMAND_HELP, COMMAND_FIND_WORD, COMMAND_FIND_DESC) + LS+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_FIND_PARAMETERS) + LS
+				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_FIND_EXAMPLE) + LS + LS + String.format(MESSAGE_COMMAND_HELP, COMMAND_LIST_WORD, COMMAND_LIST_DESC) + LS
+				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_LIST_EXAMPLE) + LS + LS
+				+ String.format(MESSAGE_COMMAND_HELP, COMMAND_DELETE_WORD, COMMAND_DELETE_DESC) + LS+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_DELETE_PARAMETER) + LS
+				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_DELETE_EXAMPLE) + LS + LS + String.format(MESSAGE_COMMAND_HELP, COMMAND_CLEAR_WORD, COMMAND_CLEAR_DESC) + LS
+				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_CLEAR_EXAMPLE) + LS + LS+ String.format(MESSAGE_COMMAND_HELP, COMMAND_EXIT_WORD, COMMAND_EXIT_DESC)+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EXIT_EXAMPLE) + LS 
+				+ String.format(MESSAGE_COMMAND_HELP, COMMAND_HELP_WORD, COMMAND_HELP_DESC)+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_HELP_EXAMPLE);
 	}
 
-	private static String getUsageInfoForFindCommand() {
-		return String.format(MESSAGE_COMMAND_HELP, COMMAND_FIND_WORD, COMMAND_FIND_DESC) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_FIND_PARAMETERS) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_FIND_EXAMPLE) + LS;
-	}
-
-	private static String getUsageInfoForDeleteCommand() {
-		return String.format(MESSAGE_COMMAND_HELP, COMMAND_DELETE_WORD, COMMAND_DELETE_DESC) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_DELETE_PARAMETER) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_DELETE_EXAMPLE) + LS;
-	}
-
-	private static String getUsageInfoForClearCommand() {
-		return String.format(MESSAGE_COMMAND_HELP, COMMAND_CLEAR_WORD, COMMAND_CLEAR_DESC) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_CLEAR_EXAMPLE) + LS;
-	}
-
-	private static String getUsageInfoForViewCommand() {
-		return String.format(MESSAGE_COMMAND_HELP, COMMAND_LIST_WORD, COMMAND_LIST_DESC) + LS
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_LIST_EXAMPLE) + LS;
-	}
-
-	private static String getUsageInfoForHelpCommand() {
-		return String.format(MESSAGE_COMMAND_HELP, COMMAND_HELP_WORD, COMMAND_HELP_DESC)
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_HELP_EXAMPLE);
-	}
-	
-	private static String getUsageInfoForExitCommand() {
-		return String.format(MESSAGE_COMMAND_HELP, COMMAND_EXIT_WORD, COMMAND_EXIT_DESC)
-				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EXIT_EXAMPLE);
-	}
 
 	private static String removePrefixSign(String s, String sign) {
 		return s.replace(sign, "");
