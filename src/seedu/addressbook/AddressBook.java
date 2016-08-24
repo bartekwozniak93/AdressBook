@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ListIterator;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
@@ -104,7 +105,20 @@ public class AddressBook {
 
 	public static void main(String[] args) {
 		showWelcomeMessage();
-		processProgramArgs(args);
+		
+		if (args.length >= 2) {
+			showToUser(MESSAGE_INVALID_PROGRAM_ARGS);
+			exitProgram();
+		}
+
+		if (args.length == 1) {
+			setupGivenFileForStorage(args[0]);
+		}
+
+		if (args.length == 0) {
+			setupDefaultFileForStorage();
+		}
+		
 		loadDataFromStorage();
 		while (true) {
 			String userCommand = getUserInput();
@@ -126,20 +140,7 @@ public class AddressBook {
 		showToUser("[Command entered:" + userCommand + "]");
 	}
 
-	private static void processProgramArgs(String[] args) {
-		if (args.length >= 2) {
-			showToUser(MESSAGE_INVALID_PROGRAM_ARGS);
-			exitProgram();
-		}
 
-		if (args.length == 1) {
-			setupGivenFileForStorage(args[0]);
-		}
-
-		if (args.length == 0) {
-			setupDefaultFileForStorage();
-		}
-	}
 
 	private static void setupGivenFileForStorage(String filePath) {
 
@@ -247,11 +248,22 @@ public class AddressBook {
 		final ArrayList<HashMap<PersonProperty, String>> matchedPersons = new ArrayList<>();
 		for (HashMap<PersonProperty, String> person : getAllPersonsInAddressBook()) {
 			final Set<String> wordsInName = new HashSet<>(splitByWhitespace(getNameFromPerson(person)));
-			if (!Collections.disjoint(wordsInName, keywords)) {
+			if (checkIsCommonElements(wordsInName, keywords)) {
 				matchedPersons.add(person);
 			}
 		}
 		return matchedPersons;
+	}
+	
+	private static boolean checkIsCommonElements(Collection<String> wordsInName, Collection<String> keywords)
+	{
+		for(String word : wordsInName){
+			for(String keyword : keywords){
+				if(word.toLowerCase().equals(keyword.toLowerCase()))
+					return true; 
+			}
+		}
+		return false; 
 	}
 
 	private static String executeDeletePerson(String commandArgs) {
