@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.ListIterator;
@@ -83,10 +84,14 @@ public class AddressBook {
 	private static final String COMMAND_HELP_WORD = "help";
 	private static final String COMMAND_HELP_DESC = "Shows program usage instructions.";
 	private static final String COMMAND_HELP_EXAMPLE = COMMAND_HELP_WORD;
-
+	
 	private static final String COMMAND_EXIT_WORD = "exit";
 	private static final String COMMAND_EXIT_DESC = "Exits the program.";
 	private static final String COMMAND_EXIT_EXAMPLE = COMMAND_EXIT_WORD;
+
+	private static final String COMMAND_SORT_WORD = "sort";
+	private static final String COMMAND_SORT_DESC = "Listing sorted people.";
+	private static final String COMMAND_SORT_EXAMPLE = COMMAND_SORT_WORD;
 
 	private static final String DIVIDER = "===================================================";
 
@@ -105,7 +110,17 @@ public class AddressBook {
 
 	public static void main(String[] args) {
 		showWelcomeMessage();
-		
+		processProgramArgs(args);
+		loadDataFromStorage();
+		while (true) {
+			String userCommand = getUserInput();
+			echoUserCommand(userCommand);
+			String feedback = executeCommand(userCommand);
+			showResultToUser(feedback);
+		}
+	}
+	
+	private static void processProgramArgs(String[] args) {
 		if (args.length >= 2) {
 			showToUser(MESSAGE_INVALID_PROGRAM_ARGS);
 			exitProgram();
@@ -117,14 +132,6 @@ public class AddressBook {
 
 		if (args.length == 0) {
 			setupDefaultFileForStorage();
-		}
-		
-		loadDataFromStorage();
-		while (true) {
-			String userCommand = getUserInput();
-			echoUserCommand(userCommand);
-			String feedback = executeCommand(userCommand);
-			showResultToUser(feedback);
 		}
 	}
 
@@ -190,6 +197,8 @@ public class AddressBook {
 			return getUsageInfoForAllCommands();
 		case COMMAND_EXIT_WORD:
 			executeExitProgramRequest();
+		case COMMAND_SORT_WORD:
+			return executeSortAllPersonsInAddressBook();	
 		default:
 			return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
 		}
@@ -311,6 +320,13 @@ public class AddressBook {
 		showToUser(toBeDisplayed);
 		return getMessageForPersonsDisplayedSummary(toBeDisplayed);
 	}
+
+	private static String executeSortAllPersonsInAddressBook() {
+		ArrayList<HashMap<PersonProperty, String>> toBeDisplayed = getAllSortedPersonsInAddressBook();
+		showToUser(toBeDisplayed);
+		return getMessageForPersonsDisplayedSummary(toBeDisplayed);
+	}
+	
 
 
 	private static void executeExitProgramRequest() {
@@ -450,6 +466,16 @@ public class AddressBook {
 
 	private static ArrayList<HashMap<PersonProperty, String>> getAllPersonsInAddressBook() {
 		return ALL_PERSONS;
+	}
+	
+	private static ArrayList<HashMap<PersonProperty, String>> getAllSortedPersonsInAddressBook() {
+		ArrayList<HashMap<PersonProperty, String>> allSortedPersons = new ArrayList<HashMap<PersonProperty, String>>(ALL_PERSONS); 
+		Collections.sort(allSortedPersons, new Comparator<HashMap<PersonProperty, String>>() {
+			public int compare(HashMap<PersonProperty, String> person1, HashMap<PersonProperty, String> person2) {
+				return person1.get(PersonProperty.NAME).compareTo(person2.get(PersonProperty.NAME));
+			}
+		});
+		return allSortedPersons; 
 	}
 
 	private static void clearAddressBook() {
@@ -605,6 +631,7 @@ public class AddressBook {
 				+ getUsageInfoForDeleteCommand() + LS 
 				+ getUsageInfoForClearCommand() + LS
 				+ getUsageInfoForExitCommand() + LS 
+				+ getUsageInfoForSortCommand() + LS
 				+ getUsageInfoForHelpCommand();
 	}
 
@@ -636,6 +663,11 @@ public class AddressBook {
 				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_LIST_EXAMPLE) + LS;
 	}
 
+	private static String getUsageInfoForSortCommand() {
+		return String.format(MESSAGE_COMMAND_HELP, COMMAND_SORT_WORD, COMMAND_SORT_DESC) + LS
+				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_SORT_EXAMPLE) + LS;
+	}
+	
 	private static String getUsageInfoForHelpCommand() {
 		return String.format(MESSAGE_COMMAND_HELP, COMMAND_HELP_WORD, COMMAND_HELP_DESC)
 				+ String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_HELP_EXAMPLE);
